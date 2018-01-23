@@ -1,5 +1,8 @@
 package main
 
+/*
+  Dependencies
+*/
 import (
   "github.com/kataras/iris"
 
@@ -7,7 +10,6 @@ import (
   "github.com/kataras/iris/middleware/recover"
 
   "encoding/json"
-  // "fmt"
   "io/ioutil"
   "log"
   "net/http"
@@ -15,6 +17,10 @@ import (
   "strings"
   "time"
 )
+
+/*
+  Structs
+*/
 
 type Student struct {
 	ChannelId string `form:"channel_id"`
@@ -36,26 +42,35 @@ type Response struct {
   }
 }
 
-type priceResponse struct {
-
+type GeneralResponse struct {
+	PayloadData []Payload `json:"payload"`
 }
 
-// type Cryptocurrency struct {
-// 	Last int `json:"last"`
-// }
+type Payload struct {
+  Book string `json:"book"`
+	Last string `json:"last"`
+}
 
+/*
+  Variables
+*/
 var (
   coin string
-  coinText = ""
-  coinColor = ""
+  coinText string
+  coinColor string
+  responseText string
 )
 
+/*
+  Function: main
+*/
 func main() {
   app := iris.New()
   app.Logger().SetLevel("debug")
   app.Use(recover.New())
 	app.Use(logger.New())
 
+  // Handling POST /prices
   app.Post("/prices", func(ctx iris.Context) {
 		student := Student{}
     err := ctx.ReadForm(&student)
@@ -67,6 +82,7 @@ func main() {
 
     coin := strings.ToLower(student.Text)
 
+    // If a coin is specified, return data for that coin
     if (len(coin) > 0) && (coin == "btc" || coin == "eth" || coin == "xrp") {
 
       if coin == "btc" {
@@ -86,7 +102,6 @@ func main() {
       response, err := http.Get("https://api.bitso.com/v3/ticker/?book=" + coin +"_mxn")
 
       if err != nil {
-        // fmt.Print(err.Error())
         ctx.JSON(iris.Map{
           "text": "The Bitso API is having some issues, try again in a few moments.",
           "response_type": "ephemeral",
@@ -108,20 +123,22 @@ func main() {
         log.Fatal(err)
       }
 
-
       ctx.JSON(iris.Map{
-        "text": "*" + strings.ToUpper(coinText) + "* information from Bitso",
+        "text": "The latest price of *" + strings.ToUpper(coinText) + " (" + strings.ToUpper(coin) + ") * from Bitso is:",
         "response_type": "in_channel",
         "mrkdwn": true,
         "attachments":[]iris.Map{iris.Map{
           "title": "Start trading!",
           "title_link": "https://bitso.com/trade",
-          "text": "Last price: " + cryptocurrencyData.Payload.Last + " MXN",
+          "text": "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.Payload.Last + " MXN *",
           "color": coinColor,
           "ts": time.Now(),
         }},
       })
+
+    // If a coin is not specified, return data for all of them
     } else {
+
       response, err := http.Get("https://api.bitso.com/v3/ticker")
 
       if err != nil {
@@ -133,23 +150,49 @@ func main() {
       }
 
       body, err := ioutil.ReadAll(response.Body)
-      // text := string(body)
 
       if err != nil {
         log.Fatal(err)
       }
 
-      cryptocurrencyData := Response{}
+      cryptocurrencyData := GeneralResponse{}
       json.Unmarshal(body, &cryptocurrencyData)
 
+      coinColor = "#A5C88F"
+
+      for i := range cryptocurrencyData.PayloadData {
+        if cryptocurrencyData.PayloadData[i].Book == "btc_mxn" {
+          coinText = "Bitcoin"
+          responseText = "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.PayloadData[i].Last + " MXN \n"
+        } else if cryptocurrencyData.PayloadData[i].Book == "eth_mxn" {
+          coinText = "Ethereum"
+          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.PayloadData[i].Last + " MXN \n"
+        } else if cryptocurrencyData.PayloadData[i].Book == "xrp_mxn" {
+          coinText = "Ripple"
+          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.PayloadData[i].Last + " MXN"
+        }
+      }
+
       if err != nil {
         log.Fatal(err)
       }
 
-
-      ctx.JSON(iris.Map{"text": "The last price of BTC, ETH and XRP is $ " + cryptocurrencyData.Payload.Last + " MXN", "response_type": "in_channel"})
+      ctx.JSON(iris.Map{
+        "text": "The latest prices of BTC, ETH and XRP from Bitso are:",
+        "response_type": "in_channel",
+        "mrkdwn": true,
+        "attachments":[]iris.Map{
+          iris.Map{
+            "title": "Start trading!",
+            "title_link": "https://bitso.com/trade",
+            "text": responseText,
+            "color": coinColor,
+            "ts": time.Now(),
+          },
+        },
+      })
     }
 	})
 
-	app.Run(iris.Addr(":8080"))
+	app.Run(iris.Addr(":3333"))
 }
