@@ -22,7 +22,8 @@ import (
   "log"
   "net/http"
   "strings"
-  "time"
+  // "fmt"
+  // "time"
 )
 
 /*
@@ -50,18 +51,25 @@ type Response struct {
 }
 
 type GeneralResponse struct {
-	PayloadData []Payload `json:"payload"`
+	Payload []struct {
+    Book string `json:"book"`
+	  Last string `json:"last"`
+  } `json:"payload"`
 }
 
-type Payload struct {
-  Book string `json:"book"`
-	Last string `json:"last"`
-}
+// type Payload struct {
+//   Book string `json:"book"`
+// 	Last string `json:"last"`
+// }
 
 type ProviderIndex struct {
 	Providers    []string
 	ProvidersMap map[string]string
 }
+
+
+// func (p *Payload) CoinName() string { return p.Book }
+// func (p *Payload) CoinValue() string { return p.Last }
 
 /*
   Constants
@@ -290,7 +298,7 @@ func main() {
 	app.Use(logger.New())
 
   // Static
-  app.Favicon("./web/assets/images/logo.png")
+  app.Favicon("./web/assets/images/bitso-slack-logo.png")
   app.StaticWeb("/static", "./web/assets")
 
   // attach and build our templates
@@ -331,6 +339,38 @@ func main() {
 
 	app.Get("/", func(ctx iris.Context) {
 
+    response, err := http.Get("https://api.bitso.com/v3/ticker")
+
+    if err != nil {
+      ctx.JSON(iris.Map{
+        "text": "The Bitso API is having some issues, try again in a few moments.",
+        "response_type": "ephemeral",
+      });
+      os.Exit(1)
+    }
+
+    body, err := ioutil.ReadAll(response.Body)
+
+    cryptocurrencyData := GeneralResponse{}
+    e := json.Unmarshal([]byte(string(body)), &cryptocurrencyData)
+
+    if e != nil {
+      panic(err)
+    }
+
+    var coins map[string]string
+    coins = make(map[string]string)
+
+    for i := range cryptocurrencyData.Payload {
+      var current = cryptocurrencyData.Payload[i]
+
+      if (current.Book == "btc_mxn" || current.Book == "eth_mxn" || current.Book == "xrp_mxn" || current.Book == "ltc_mxn") {
+        coins[current.Book] = current.Last
+      }
+    }
+
+    ctx.ViewData("Coins", coins)
+
 		if err := ctx.View("index.pug"); err != nil {
 			ctx.Writef("%v", err)
 		}
@@ -349,7 +389,7 @@ func main() {
     coin := strings.ToLower(student.Text)
 
     // If a coin is specified, return data for that coin
-    if (len(coin) > 0) && (coin == "btc" || coin == "eth" || coin == "xrp") {
+    if (len(coin) > 0) && (coin == "btc" || coin == "eth" || coin == "xrp" || coin == "ltc") {
 
       if coin == "btc" {
         coinText = "Bitcoin"
@@ -360,6 +400,9 @@ func main() {
       } else if coin == "xrp" {
         coinText = "Ripple"
         coinColor = "#0091CF"
+      } else if coin == "ltc" {
+        coinText = "Litecoin"
+        coinColor = "#B6B6B6"
       } else {
         coinText = "Unknown coin"
         coinColor = "#A5C88F"
@@ -398,7 +441,6 @@ func main() {
           "title_link": "https://bitso.com/trade",
           "text": "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.Payload.Last + " MXN *",
           "color": coinColor,
-          "ts": time.Now(),
         }},
       })
 
@@ -426,16 +468,19 @@ func main() {
 
       coinColor = "#A5C88F"
 
-      for i := range cryptocurrencyData.PayloadData {
-        if cryptocurrencyData.PayloadData[i].Book == "btc_mxn" {
+      for i := range cryptocurrencyData.Payload {
+        if cryptocurrencyData.Payload[i].Book == "btc_mxn" {
           coinText = "Bitcoin"
-          responseText = "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.PayloadData[i].Last + " MXN \n"
-        } else if cryptocurrencyData.PayloadData[i].Book == "eth_mxn" {
+          responseText = "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.Payload[i].Last + " MXN \n"
+        } else if cryptocurrencyData.Payload[i].Book == "eth_mxn" {
           coinText = "Ethereum"
-          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.PayloadData[i].Last + " MXN \n"
-        } else if cryptocurrencyData.PayloadData[i].Book == "xrp_mxn" {
+          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.Payload[i].Last + " MXN \n"
+        } else if cryptocurrencyData.Payload[i].Book == "xrp_mxn" {
           coinText = "Ripple"
-          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.PayloadData[i].Last + " MXN"
+          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.Payload[i].Last + " MXN \n"
+        } else if cryptocurrencyData.Payload[i].Book == "ltc_mxn" {
+          coinText = "Litecoin"
+          responseText += "*" + strings.ToUpper(coinText) + "*: $ " + cryptocurrencyData.Payload[i].Last + " MXN"
         }
       }
 
@@ -444,7 +489,7 @@ func main() {
       }
 
       ctx.JSON(iris.Map{
-        "text": "The latest prices of BTC, ETH and XRP from Bitso are:",
+        "text": "The latest prices of BTC, ETH, XRP and LTC from Bitso are:",
         "response_type": "in_channel",
         "mrkdwn": true,
         "attachments":[]iris.Map{
@@ -453,7 +498,6 @@ func main() {
             "title_link": "https://bitso.com/trade",
             "text": responseText,
             "color": coinColor,
-            "ts": time.Now(),
           },
         },
       })

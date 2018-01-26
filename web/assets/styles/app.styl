@@ -1,44 +1,379 @@
+/*
+  Mixins
+*/
+isFlex(align = center, justify = center, direction = row)
+  display flex
+  align-items align
+  justify-content justify
+  flex-direction direction
+  flex-wrap nowrap
+
+/*
+  Colors
+*/
+darkseagreen-color = #a7c794
+
+*
+  box-sizing border-box
+  outline none
 body
-  font-family 'Roboto', sans-serif
+  font-family 'PT Sans', sans-serif
   background #A5C88F
   margin 0
   padding 0
   overflow hidden
   height 100vh
   width 100%
-  display flex
-  align-items center
-  justify-content center
+  background url('/static/images/bitso-pattern.jpg') no-repeat center
+  background-size cover
+  isFlex(center, center);
 h1
   font-weight 300
-  color #333
-p
-  color #333
-
 a
   text-decoration none
-  border-bottom 1px dotted #333
-  color #524247
+ul
+  padding 0
+ul
+  li
+    list-style none
+
+.command
+  color #d4133d
+  background rgba(lightgray, 0.3)
+  border 1px solid rgba(lightgray, 0.7);
+  padding 1px 2px
+  display inline-block
+  border-radius 3px
+
+.btn-go-to
+  position absolute
+  bottom 10px
+  left 10px
+  background none
+  border none
+  padding 0
+  font-size 13px
+  font-family 'PT Sans', sans-serif
+  cursor pointer
+  transition 0.2s linear all
+  border-bottom 1px dotted transparent
+  &:hover
+    border-color #282828
+
+#loader
+  position absolute
+  left 0
+  right 0
+  margin 0 auto
+  display block
+  text-align center
+  span
+    font-size 30px
+    text-shadow 2px 2px rgba(#282828, 0.3)
+    color white
+    letter-spacing 1px
+
 /*
   Index page
 */
 #index-page
-  max-width 600px
-  height auto
   position relative
-  flex 1
-  background white
-  box-shadow 4px 4px 15px rgba(black, 0.15)
-  border-radius 10px
   padding 20px
-  .content
-    text-align center
-  img
-    max-width 180px
-  #footer
-    margin-top 50px
-    display block
-    p
-      margin-bottom 0
+  transition 0.25s linear all
+  &.loading
+    opacity 0
+    transform scale(0.3)
+    position relative
+    z-index -1
+
   small
     font-size 11px
+
+// Nav
+nav
+  width 100%
+  ul
+    max-width 1000px
+    isFlex(center, center)
+  li
+    #logo-item
+      margin-left auto
+    & + li
+      margin-left 25px
+  a
+    color #282828
+
+
+// Content
+.content
+  max-width 1000px
+  box-shadow:
+    inset 0 7em 10em -5em rgba(white,0.6),
+    0 0.3em 0.5em -0.2em rgba(#282828,0.5),
+    0 1em 2em -0.75em rgba(#282828,0.4),
+    0 1em 3em -0.5em rgba(#282828,0.3),
+    0 3em 3em -0.25em rgba(#282828,0.15)
+  background white
+  isFlex(flex-start, space-between)
+  color #282828
+  min-height 400px
+  img
+    max-width 220px
+  #left,
+  #right
+    position relative
+    align-self stretch
+  #left
+    width 45%
+    text-align center
+    p
+      font-size 15px
+      font-weight 300
+      color rgba(gray, 0.85)
+      line-height 22px
+      &:last-child
+        margin-bottom 0
+      &.description
+        a
+          transition 0.25s ease-out all
+          display inline-block
+          background darkseagreen-color
+          color white
+          padding 0 4px
+          &:hover
+            transform translateY(1px)
+
+  #home
+    transition 0.25s ease-out all
+    padding 20px
+    &.inactive
+      transform scale(0.8)
+      opacity 0.3
+
+  #add-to-slack
+    isFlex(center, space-between)
+    color white
+    width 170px
+    padding 7px 12px
+    border-radius 6px
+    background #d4133d
+    margin 0 auto
+    margin-top 35px
+    transition 0.25s ease-out all
+    &:active,
+    &:focus
+      color white
+    &:hover
+      transform translateY(-2px)
+      box-shadow:
+        inset 0 7em 10em -5em rgba(white,0.6),
+        0 0.3em 0.5em -0.2em rgba(#282828,0.3),
+        0 1em 2em -0.75em rgba(#282828,0.3),
+        0 1em 3em -0.5em rgba(#282828,0.2),
+        0 3em 3em -0.25em rgba(#282828,0.1)
+    img
+      width 35px
+    span
+      margin-left 10px
+      font-size 18px
+
+
+
+  #how-it-works
+    text-align initial
+    transform translateX(100%)
+    position absolute
+    top 0
+    left 0
+    align-self stretch
+    width 100%
+    height 100%
+    background white
+    transition 0.25s ease-out all
+    padding 10px 20px
+    &.active
+      transform translateX(0)
+    p
+      color #282828
+      &.with-image
+        text-align right
+    img
+      max-width 100%
+      width 87%
+      border-radius 4px
+      box-shadow 4px 4px 25px rgba(#282828, 0.15)
+
+
+  #right
+    width 55%
+    overflow hidden
+    padding 10px 20px
+    isFlex(center, center)
+    &:before
+      content ''
+      width 100%
+      height 100%
+      position absolute
+      top 0
+      left 0
+      background url('/static/images/bitso-pattern.jpg') no-repeat center
+      background-size cover
+      transform scaleX(-1)
+      filter FlipH
+      -ms-filter 'FlipH'
+
+  .list
+    isFlex(flex-end, space-between)
+    width 100%
+    position relative
+    z-index 99
+    height 300px
+    .item
+      isFlex(center, center, column)
+      width 30%
+      .square
+        isFlex(center, center, column)
+        flex 1
+        width 100%
+        height 120px
+        background white
+        border-radius 4px
+        box-shadow 5px 5px 30px rgba(#282828, 0.6)
+        padding 10px
+        cursor pointer
+        transition 0.2s linear all
+        color #282828
+        &:active,
+        &:focus
+          color #282828
+        &  + .square
+          margin-top 15px
+        &:hover
+          transform translateY(5px)
+    .item-image
+      height 30px
+    .item-name
+      font-size 13px
+      margin-top 10px
+      font-weight 600
+    .item-value
+      font-size 13px
+      margin-top 5px
+
+  .item.middle
+    align-self flex-start
+
+// Footer
+#footer
+  margin-top 50px
+  display block
+  p
+    margin-bottom 0
+
+
+
+
+/*
+  Responsive
+*/
+@media screen and (max-width: 950px)
+  body
+    height auto
+    background-repeat repeat
+  .content
+    isFlex(center, center, column)
+    #left
+      flex 1
+      width 100%
+      overflow hidden
+      height 400px
+    #right
+      flex 1
+      width 100%
+    #home
+      height 100%
+    #how-it-works
+      img
+        width 350px
+
+@media screen and (max-width: 600px)
+  body
+    overflow-y auto
+    display block
+  #loader
+    width 100%
+    height 100%
+    top 0
+    left 0
+    isFlex(center, center)
+  #index-page
+    padding 0
+  .content
+    min-height auto
+    box-shadow none
+    #right
+      height auto
+    .list
+      isFlex(center, center, column)
+      height auto
+      .item
+        width 50%
+        &:first-child
+          margin-top 15px
+          order 3
+          .square
+            margin 0
+            &:last-child
+              margin-top 15px
+
+        &:nth-child(2)
+          order 1
+          .square
+            margin 0
+            &:first-child
+              margin-top 15px
+              order 2
+            &:last-child
+
+              order 1
+
+        &:last-child
+          margin-top 15px
+          order 2
+          .square
+            margin 0
+            &:last-child
+              margin-top 15px
+        .square
+          height 100px
+      .item.middle
+        align-self center
+
+@media screen and (max-width 480px)
+  .btn-go-to
+    display none
+  .content
+    #add-to-slack
+      &:hover
+        box-shadow inset 0 7em 10em -5em rgba(white,0.6)
+    #left
+      height auto
+    #how-it-works
+      text-align center
+      position relative
+      transform translateX(0)
+      p
+        &.with-image
+          text-align center
+    .list
+      .item
+        width 100%
+
+@media screen and (max-width 400px)
+  .content
+    img
+      width 180px
+    #how-it-works
+      img
+        width 100%
+
