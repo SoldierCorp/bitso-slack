@@ -28,7 +28,7 @@ html(lang='en')
 
     meta(property='og:url', content='https://bitso.edgardorl.com')
     meta(property='og:title', content='Bitso for Slack')
-    meta(property='og:description', content='Now you can check the latest prices of Bitcoin, Ethererum, Ripple and Bitcoin directly on Slack with the Bitso app.')
+    meta(property='og:description', content='Now you can check the latest prices of Bitcoin, Ethererum, Ripple and Litecoin directly on Slack with the Bitso app.')
     meta(property='og:image', content='https://826e5b51.ngrok.io/static/images/bitso-pattern.png')
 
   body
@@ -51,32 +51,38 @@ html(lang='en')
     script.
       function start() {
         setTimeout(function() {
-          var indexPage = document.getElementById('index-page');
-          indexPage.classList.remove('loading');
+          var page = document.getElementsByClassName('page')[0];
+          console.log(page);
+          page.classList.remove('loading');
 
           var loader = document.getElementById('loader');
           loader.parentNode.removeChild(loader);
+
         }, 1200);
       }
 
       function goToHow() {
         var howSection = document.getElementById('how-it-works');
-        howSection.className += ' active';
+        if (howSection) {
+          howSection.className += ' active';
 
-        var homeSection = document.getElementById('home');
-        homeSection.className += ' inactive';
+          var homeSection = document.getElementById('home');
+          homeSection.className += ' inactive';
 
-        ga('send', 'event', 'Internal link', 'click', 'Show how it works page');
+          ga('send', 'event', 'Internal link', 'click', 'Show how it works page');
+        }
       }
 
       function goToHome() {
         var howSection = document.getElementById('how-it-works');
-        howSection.classList.remove('active');
+        if (howSection) {
+          howSection.classList.remove('active');
 
-        var homeSection = document.getElementById('home');
-        homeSection.classList.remove('inactive');
+          var homeSection = document.getElementById('home');
+          homeSection.classList.remove('inactive');
 
-        ga('send', 'event', 'Internal link', 'click', 'Show home page');
+          ga('send', 'event', 'Internal link', 'click', 'Show home page');
+        }
       }
 
       var img = new Image();

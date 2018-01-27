@@ -57,20 +57,6 @@ type GeneralResponse struct {
   } `json:"payload"`
 }
 
-// type Payload struct {
-//   Book string `json:"book"`
-// 	Last string `json:"last"`
-// }
-
-type ProviderIndex struct {
-	Providers    []string
-	ProvidersMap map[string]string
-}
-
-
-// func (p *Payload) CoinName() string { return p.Book }
-// func (p *Payload) CoinValue() string { return p.Last }
-
 /*
   Constants
 */
@@ -147,7 +133,8 @@ for the requested provider.
 See https://github.com/markbates/goth/examples/main.go to see this in action.
 */
 func BeginAuthHandler(ctx iris.Context) {
-	url, err := GetAuthURL(ctx)
+  url, err := GetAuthURL(ctx)
+
 	if err != nil {
 		ctx.StatusCode(iris.StatusBadRequest)
 		ctx.Writef("%v", err)
@@ -271,13 +258,54 @@ func Logout(ctx iris.Context) error {
 
 // End of the "some function helpers".
 
+
+/*
+  Function: get all cryptocurrencies values
+*/
+func getAllCoins(ctx iris.Context) map[string]string {
+  response, err := http.Get("https://api.bitso.com/v3/ticker")
+
+  if err != nil {
+    ctx.JSON(iris.Map{
+      "text": "The Bitso API is having some issues, try again in a few moments.",
+      "response_type": "ephemeral",
+    });
+    os.Exit(1)
+  }
+
+  body, err := ioutil.ReadAll(response.Body)
+
+  cryptocurrencyData := GeneralResponse{}
+  e := json.Unmarshal([]byte(string(body)), &cryptocurrencyData)
+
+  if e != nil {
+    panic(err)
+  }
+
+  var coins map[string]string
+  coins = make(map[string]string)
+
+  for i := range cryptocurrencyData.Payload {
+    var current = cryptocurrencyData.Payload[i]
+
+    if (current.Book == "btc_mxn" || current.Book == "eth_mxn" || current.Book == "xrp_mxn" || current.Book == "ltc_mxn") {
+      coins[current.Book] = current.Last
+    }
+  }
+
+  return coins
+}
+
 /*
   Function: main
 */
 func main() {
 
+  os.Setenv("SLACK_KEY", "302808434871.301736347204")
+  os.Setenv("SLACK_SECRET", "17156c74a6e35869044f539e3524557b")
+
   goth.UseProviders(
-    slack.New(os.Getenv("302808434871.301736347204"), os.Getenv("17156c74a6e35869044f539e3524557b"), "http://localhost:3333/auth/slack/callback"),
+    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "http://localhost:3333/auth/slack/callback", "chat:write:bot, commands, users:read"),
   )
 
   m := make(map[string]string)
@@ -288,8 +316,6 @@ func main() {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-
-	// providerIndex := &ProviderIndex{Providers: keys, ProvidersMap: m}
 
 
   app := iris.New()
@@ -312,24 +338,48 @@ func main() {
   // start of the router
 
 	app.Get("/auth/{provider}/callback", func(ctx iris.Context) {
+    user, err := CompleteUserAuth(ctx)
 
-		user, err := CompleteUserAuth(ctx)
+
 		if err != nil {
-			ctx.StatusCode(iris.StatusInternalServerError)
-			ctx.Writef("%v", err)
+      ctx.Redirect("/success");
+
+			// ctx.StatusCode(iris.StatusInternalServerError)
+			// ctx.Writef("%v", err)
 			return
-		}
-		ctx.ViewData("", user)
-		if err := ctx.View("user.html"); err != nil {
-			ctx.Writef("%v", err)
-		}
+    }
+    ctx.ViewData("User", user)
+
+    ctx.Redirect("/success");
+
+		// if err := ctx.View("user.html"); err != nil {
+    //   log.Print("err ctx")
+		// 	ctx.Writef("%v", err)
+		// }
+  })
+
+  app.Get("/logout/{provider}", func(ctx iris.Context) {
+		Logout(ctx)
+		ctx.Redirect("/", iris.StatusTemporaryRedirect)
   })
 
   app.Get("/auth/{provider}", func(ctx iris.Context) {
-		// try to get the user without re-authenticating
+    // try to get the user without re-authenticating
+
 		if gothUser, err := CompleteUserAuth(ctx); err == nil {
-			ctx.ViewData("", gothUser)
-			if err := ctx.View("user.html"); err != nil {
+
+      if gothUser.NickName == "" {
+        ctx.Redirect("/logout/slack");
+      }
+
+      ctx.Redirect("/success");
+
+      var c = getAllCoins(ctx);
+
+      ctx.ViewData("", gothUser)
+      ctx.ViewData("Coins", c)
+
+      if err := ctx.View("index.pug"); err != nil {
 				ctx.Writef("%v", err)
 			}
 		} else {
@@ -339,39 +389,20 @@ func main() {
 
 	app.Get("/", func(ctx iris.Context) {
 
-    response, err := http.Get("https://api.bitso.com/v3/ticker")
-
-    if err != nil {
-      ctx.JSON(iris.Map{
-        "text": "The Bitso API is having some issues, try again in a few moments.",
-        "response_type": "ephemeral",
-      });
-      os.Exit(1)
-    }
-
-    body, err := ioutil.ReadAll(response.Body)
-
-    cryptocurrencyData := GeneralResponse{}
-    e := json.Unmarshal([]byte(string(body)), &cryptocurrencyData)
-
-    if e != nil {
-      panic(err)
-    }
-
-    var coins map[string]string
-    coins = make(map[string]string)
-
-    for i := range cryptocurrencyData.Payload {
-      var current = cryptocurrencyData.Payload[i]
-
-      if (current.Book == "btc_mxn" || current.Book == "eth_mxn" || current.Book == "xrp_mxn" || current.Book == "ltc_mxn") {
-        coins[current.Book] = current.Last
-      }
-    }
-
-    ctx.ViewData("Coins", coins)
+    var c = getAllCoins(ctx);
+    ctx.ViewData("Coins", c)
 
 		if err := ctx.View("index.pug"); err != nil {
+			ctx.Writef("%v", err)
+		}
+  })
+
+  app.Get("/success", func(ctx iris.Context) {
+
+    var c = getAllCoins(ctx);
+    ctx.ViewData("Coins", c)
+
+		if err := ctx.View("success.pug"); err != nil {
 			ctx.Writef("%v", err)
 		}
   })
@@ -505,4 +536,10 @@ func main() {
 	})
 
 	app.Run(iris.Addr(":3333"))
+}
+
+
+type ProviderIndex struct {
+	Providers    []string
+	ProvidersMap map[string]string
 }

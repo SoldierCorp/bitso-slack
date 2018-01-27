@@ -1,27 +1,15 @@
-#index-page.page.loading
+#success-page.page.loading
   section.content
 
     #left
       #home
         img(src='/static/images/bitso-logo.svg')
-        h1 Bitso for Slack (unofficial)
-        p.description This Slack app was built to provide a quick access to the latest prices of #[strong Bitcoin], #[strong Ethereum], #[strong Ripple] and #[strong Litecoin] cryptocurrencies whithin Slack, instead of visiting and refreshing Bitso every time.
-        p.description #[strong Bitso] official site is here #[a(href='https://bitso.com' title='https://bitso.com' alt='https://bitso.com' onClick="ga('send', 'event', 'External link', 'click', 'Bitso website');") https://bitso.com]
+        h1 Great! You’ve connected Bitso and Slack.
+        h3 You can now try your first slash command in Slack.
         p
-          a#add-to-slack(href='/auth/slack' alt='Add to Slack' title='Add to Slack', onClick="ga('send', 'event', 'External link', 'click', 'Add to Slack');")
-            img(src='/static/images/Slack.svg' alt='Add to Slack' title='Add to Slack')
-            span Add to Slack
-        button#go-to-how.btn-go-to(onClick='goToHow()') How it works? &#8594;
-
-      #how-it-works
-        p Write the command #[span.command /bitso] to get the value of all the coins.
-        p.with-image
-          img#command-all-image(src='/static/images/command-result-all.png' title='Get all cryptocurrencies' alt='Get all cryptocurrencies')
-        p Write the command #[span.command /bitso (btc, eth, xrp or ltc) ] to get the value of a specific coin.
-        p.with-image
-          img#command-xrp-image(src='/static/images/command-result-xrp.png' title='Get specific cryptocurrency' alt='Get specific cryptocurrency')
-        button#go-to-home.btn-go-to(onClick='goToHome()') &#8592; Home
-
+          a#add-to-slack(href='slack://open' alt='Open Slack' title='Open Slack', onClick="ga('send', 'event', 'External link', 'click', 'Open Slack');")
+            img(src='/static/images/slack.svg' alt='Open Slack' title='Open Slack')
+            span Open Slack
 
     #right
       ul.list

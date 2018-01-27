@@ -18,13 +18,12 @@ darkseagreen-color = #a7c794
   outline none
 body
   font-family 'PT Sans', sans-serif
-  background #A5C88F
+  background #F8F8F8
   margin 0
   padding 0
   overflow hidden
   height 100vh
   width 100%
-  background url('/static/images/bitso-pattern.jpg') no-repeat center
   background-size cover
   isFlex(center, center);
 h1
@@ -69,14 +68,14 @@ ul
   text-align center
   span
     font-size 30px
-    text-shadow 2px 2px rgba(#282828, 0.3)
-    color white
+    text-shadow 2px 2px rgba(darkseagreen-color, 0.5)
+    color #282828
     letter-spacing 1px
 
 /*
-  Index page
+   page
 */
-#index-page
+.page
   position relative
   padding 20px
   transition 0.25s linear all
@@ -88,6 +87,17 @@ ul
 
   small
     font-size 11px
+
+/*
+  Success page
+*/
+#success-page
+  .content
+    #left
+      width 55%
+      isFlex(center, center)
+    #right
+      width 75%
 
 // Nav
 nav
@@ -117,6 +127,25 @@ nav
   isFlex(flex-start, space-between)
   color #282828
   min-height 400px
+  position relative
+  &:before
+    content ''
+    position absolute
+    left 30px
+    top -10px
+    background darkseagreen-color
+    width 30px
+    height 30px
+    transform rotate(30deg)
+  &:after
+    content ''
+    position absolute
+    right 30px
+    bottom -15px
+    background white
+    width 30px
+    height 30px
+    transform rotate(30deg)
   img
     max-width 220px
   #left,
@@ -160,17 +189,14 @@ nav
     margin 0 auto
     margin-top 35px
     transition 0.25s ease-out all
+    box-shadow 0px 6px 20px rgba(#282828, 0.4)
     &:active,
     &:focus
       color white
     &:hover
-      transform translateY(-2px)
-      box-shadow:
-        inset 0 7em 10em -5em rgba(white,0.6),
-        0 0.3em 0.5em -0.2em rgba(#282828,0.3),
-        0 1em 2em -0.75em rgba(#282828,0.3),
-        0 1em 3em -0.5em rgba(#282828,0.2),
-        0 3em 3em -0.25em rgba(#282828,0.1)
+      transform translateY(3px)
+      box-shadow 0px 3px 10px rgba(#282828, 0.2)
+
     img
       width 35px
     span
@@ -199,9 +225,13 @@ nav
         text-align right
     img
       max-width 100%
-      width 87%
+      // width 87%
       border-radius 4px
       box-shadow 4px 4px 25px rgba(#282828, 0.15)
+    #command-all-image
+      border 1px solid darkseagreen-color
+    #command-xrp-image
+      border 1px solid #0091CF
 
 
   #right
@@ -217,10 +247,11 @@ nav
       top 0
       left 0
       background url('/static/images/bitso-pattern.jpg') no-repeat center
-      background-size cover
-      transform scaleX(-1)
-      filter FlipH
-      -ms-filter 'FlipH'
+      background-size 200%
+      // transform scaleX(-1)
+      // filter FlipH
+      // -ms-filter 'FlipH'
+      animation scaling 15s infinite ease-out alternate
 
   .list
     isFlex(flex-end, space-between)
@@ -272,14 +303,28 @@ nav
 
 
 
-
+@keyframes scaling
+  from
+    transform: scale(1)
+  to
+    transform: scale(1.3)
 /*
   Responsive
 */
+@media screen and (max-height 775px)
+  body
+    overflow-y auto
+
 @media screen and (max-width: 950px)
   body
     height auto
-    background-repeat repeat
+  #success-page
+    .content
+      #left,
+      #right
+        width 100%
+      #home
+        height auto
   .content
     isFlex(center, center, column)
     #left
@@ -292,9 +337,6 @@ nav
       width 100%
     #home
       height 100%
-    #how-it-works
-      img
-        width 350px
 
 @media screen and (max-width: 600px)
   body
@@ -306,7 +348,7 @@ nav
     top 0
     left 0
     isFlex(center, center)
-  #index-page
+  .page
     padding 0
   .content
     min-height auto
