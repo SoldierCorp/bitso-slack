@@ -146,6 +146,7 @@ nav a {
   width: 30px;
   height: 30px;
   transform: rotate(30deg);
+  z-index: 99;
 }
 .content:after {
   content: '';
@@ -156,6 +157,7 @@ nav a {
   width: 30px;
   height: 30px;
   transform: rotate(30deg);
+  z-index: 99;
 }
 .content img {
   max-width: 220px;
