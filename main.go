@@ -305,7 +305,7 @@ func main() {
   os.Setenv("SLACK_SECRET", "17156c74a6e35869044f539e3524557b")
 
   goth.UseProviders(
-    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "http://localhost:3333/auth/slack/callback", "chat:write:bot, commands, users:read"),
+    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "https://bitso-slack.edgardorl.com/auth/slack/callback", "chat:write:bot, commands, users:read"),
   )
 
   m := make(map[string]string)
