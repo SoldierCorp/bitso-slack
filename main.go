@@ -14,6 +14,8 @@ import (
   "github.com/markbates/goth"
   "github.com/markbates/goth/providers/slack"
 
+  "github.com/joho/godotenv"
+
   "errors"
 	"os"
 	"sort"
@@ -22,8 +24,6 @@ import (
   "log"
   "net/http"
   "strings"
-  // "fmt"
-  // "time"
 )
 
 /*
@@ -61,9 +61,10 @@ type GeneralResponse struct {
   Constants
 */
 const (
-	DefaultTitle  = "Bitso for Slack (unofficial)"
+	DefaultTitle  = "Bitso for Slack"
 	DefaultLayout = "web/layouts/master.pug"
 )
+
 /*
   Variables
 */
@@ -96,13 +97,15 @@ func init() {
 	})
 }
 
-// These are some function helpers that you may use if you want
+/*
+  These are some function helpers that you may use if you want
 
-// GetProviderName is a function used to get the name of a provider
-// for a given request. By default, this provider is fetched from
-// the URL query string. If you provide it in a different way,
-// assign your own function to this variable that returns the provider
-// name for your request.
+  GetProviderName is a function used to get the name of a provider
+  for a given request. By default, this provider is fetched from
+  the URL query string. If you provide it in a different way,
+  assign your own function to this variable that returns the provider
+  name for your request.
+*/
 var GetProviderName = func(ctx iris.Context) (string, error) {
 	// try to get it from the url param "provider"
 	if p := ctx.URLParam("provider"); p != "" {
@@ -123,14 +126,14 @@ var GetProviderName = func(ctx iris.Context) (string, error) {
 }
 
 /*
-BeginAuthHandler is a convenience handler for starting the authentication process.
-It expects to be able to get the name of the provider from the query parameters
-as either "provider" or ":provider".
+  BeginAuthHandler is a convenience handler for starting the authentication process.
+  It expects to be able to get the name of the provider from the query parameters
+  as either "provider" or ":provider".
 
-BeginAuthHandler will redirect the user to the appropriate authentication end-point
-for the requested provider.
+  BeginAuthHandler will redirect the user to the appropriate authentication end-point
+  for the requested provider.
 
-See https://github.com/markbates/goth/examples/main.go to see this in action.
+  See https://github.com/markbates/goth/examples/main.go to see this in action.
 */
 func BeginAuthHandler(ctx iris.Context) {
   url, err := GetAuthURL(ctx)
@@ -145,14 +148,14 @@ func BeginAuthHandler(ctx iris.Context) {
 }
 
 /*
-GetAuthURL starts the authentication process with the requested provided.
-It will return a URL that should be used to send users to.
+  GetAuthURL starts the authentication process with the requested provided.
+  It will return a URL that should be used to send users to.
 
-It expects to be able to get the name of the provider from the query parameters
-as either "provider" or ":provider" or from the context's value of "provider" key.
+  It expects to be able to get the name of the provider from the query parameters
+  as either "provider" or ":provider" or from the context's value of "provider" key.
 
-I would recommend using the BeginAuthHandler instead of doing all of these steps
-yourself, but that's entirely up to you.
+  I would recommend using the BeginAuthHandler instead of doing all of these steps
+  yourself, but that's entirely up to you.
 */
 func GetAuthURL(ctx iris.Context) (string, error) {
 	providerName, err := GetProviderName(ctx)
@@ -178,10 +181,12 @@ func GetAuthURL(ctx iris.Context) (string, error) {
 	return url, nil
 }
 
-// SetState sets the state string associated with the given request.
-// If no state string is associated with the request, one will be generated.
-// This state is sent to the provider and can be retrieved during the
-// callback.
+/*
+  SetState sets the state string associated with the given request.
+  If no state string is associated with the request, one will be generated.
+  This state is sent to the provider and can be retrieved during the
+  callback.
+*/
 var SetState = func(ctx iris.Context) string {
 	state := ctx.URLParam("state")
 	if len(state) > 0 {
@@ -192,21 +197,23 @@ var SetState = func(ctx iris.Context) string {
 
 }
 
-// GetState gets the state returned by the provider during the callback.
-// This is used to prevent CSRF attacks, see
-// http://tools.ietf.org/html/rfc6749#section-10.12
+/*
+  GetState gets the state returned by the provider during the callback.
+  This is used to prevent CSRF attacks, see
+  http://tools.ietf.org/html/rfc6749#section-10.12
+*/
 var GetState = func(ctx iris.Context) string {
 	return ctx.URLParam("state")
 }
 
 /*
-CompleteUserAuth does what it says on the tin. It completes the authentication
-process and fetches all of the basic information about the user from the provider.
+  CompleteUserAuth does what it says on the tin. It completes the authentication
+  process and fetches all of the basic information about the user from the provider.
 
-It expects to be able to get the name of the provider from the query parameters
-as either "provider" or ":provider".
+  It expects to be able to get the name of the provider from the query parameters
+  as either "provider" or ":provider".
 
-See https://github.com/markbates/goth/examples/main.go to see this in action.
+  See https://github.com/markbates/goth/examples/main.go to see this in action.
 */
 var CompleteUserAuth = func(ctx iris.Context) (goth.User, error) {
 	providerName, err := GetProviderName(ctx)
@@ -300,12 +307,13 @@ func getAllCoins(ctx iris.Context) map[string]string {
   Function: main
 */
 func main() {
-
-  os.Setenv("SLACK_KEY", "302808434871.301736347204")
-  os.Setenv("SLACK_SECRET", "17156c74a6e35869044f539e3524557b")
+  err := godotenv.Load()
+  if err != nil {
+    log.Fatal("Error loading .env file")
+  }
 
   goth.UseProviders(
-    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "https://bitso-slack.edgardorl.com/auth/slack/callback", "chat:write:bot, commands, users:read"),
+    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "https://bitso-slack.edgardorl.com/auth/slack/callback", "chat:write:bot, commands"),
   )
 
   m := make(map[string]string)
@@ -317,17 +325,17 @@ func main() {
 	}
 	sort.Strings(keys)
 
-
+  // Iris instance initialization
   app := iris.New()
   app.Logger().SetLevel("debug")
   app.Use(recover.New())
 	app.Use(logger.New())
 
-  // Static
+  // Static files
   app.Favicon("./web/assets/images/bitso-slack-logo.png")
   app.StaticWeb("/static", "./web/assets")
 
-  // attach and build our templates
+  // attach and build the templates
   tmpl := iris.Pug("./web/templates", ".pug").Reload(true)
   tmpl.Layout("layouts/master.pug").Reload(true)
 
@@ -335,27 +343,17 @@ func main() {
 
   app.RegisterView(tmpl)
 
-  // start of the router
 
+  // Handling GET /auth/slack/callback
 	app.Get("/auth/{provider}/callback", func(ctx iris.Context) {
     user, err := CompleteUserAuth(ctx)
 
-
 		if err != nil {
       ctx.Redirect("/success");
-
-			// ctx.StatusCode(iris.StatusInternalServerError)
-			// ctx.Writef("%v", err)
 			return
     }
     ctx.ViewData("User", user)
-
     ctx.Redirect("/success");
-
-		// if err := ctx.View("user.html"); err != nil {
-    //   log.Print("err ctx")
-		// 	ctx.Writef("%v", err)
-		// }
   })
 
   app.Get("/logout/{provider}", func(ctx iris.Context) {
@@ -363,6 +361,7 @@ func main() {
 		ctx.Redirect("/", iris.StatusTemporaryRedirect)
   })
 
+  // Handling GET /auth/slack
   app.Get("/auth/{provider}", func(ctx iris.Context) {
     // try to get the user without re-authenticating
 
@@ -387,6 +386,7 @@ func main() {
 		}
 	})
 
+  // Handling GET /
 	app.Get("/", func(ctx iris.Context) {
 
     var c = getAllCoins(ctx);
@@ -397,6 +397,7 @@ func main() {
 		}
   })
 
+  // Handling GET /success
   app.Get("/success", func(ctx iris.Context) {
 
     var c = getAllCoins(ctx);
@@ -536,10 +537,4 @@ func main() {
 	})
 
 	app.Run(iris.Addr(":3333"))
-}
-
-
-type ProviderIndex struct {
-	Providers    []string
-	ProvidersMap map[string]string
 }
