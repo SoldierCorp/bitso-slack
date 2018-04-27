@@ -4,6 +4,17 @@ package main
   Dependencies
 */
 import (
+  "database/sql"
+  "errors"
+	"os"
+	"sort"
+  "encoding/json"
+  "io/ioutil"
+  "log"
+  "net/http"
+  "strings"
+  "fmt"
+
   "github.com/kataras/iris"
 
   "github.com/kataras/iris/middleware/logger"
@@ -15,22 +26,14 @@ import (
   "github.com/markbates/goth/providers/slack"
 
   "github.com/joho/godotenv"
-
-  "errors"
-	"os"
-	"sort"
-  "encoding/json"
-  "io/ioutil"
-  "log"
-  "net/http"
-  "strings"
+  _"github.com/go-sql-driver/mysql"
 )
 
 /*
   Structs
 */
 
-type Student struct {
+type Slack struct {
 	ChannelId string `form:"channel_id"`
   ChannelName string `form:"channel_name"`
   Command string `form:"command"`
@@ -57,6 +60,20 @@ type GeneralResponse struct {
   } `json:"payload"`
 }
 
+type SlackAuthAccess struct {
+  AccessToken string `json:"access_token"`
+  Scope string `json:"scope"`
+}
+
+type (
+  SlackWorkspace struct {
+    Error string `json:"error"`
+    Id string `json:"id"`
+    Name string `json:"name"`
+    Token string `json:"token"`
+  }
+)
+
 /*
   Constants
 */
@@ -82,6 +99,7 @@ var sessionsManager *sessions.Sessions
   Function: init
 */
 func init() {
+  fmt.Println("# Init!")
 	// attach a session manager
 	cookieName := "bitsosessionid"
 	// AES only supports key sizes of 16, 24 or 32 bytes.
@@ -107,20 +125,29 @@ func init() {
   name for your request.
 */
 var GetProviderName = func(ctx iris.Context) (string, error) {
+  fmt.Println("# Get provider Name")
+
 	// try to get it from the url param "provider"
 	if p := ctx.URLParam("provider"); p != "" {
 		return p, nil
 	}
 
+  fmt.Println("Error getting URLParam provider")
 	// try to get it from the url PATH parameter "{provider} or :provider or {provider:string} or {provider:alphabetical}"
 	if p := ctx.Params().Get("provider"); p != "" {
 		return p, nil
 	}
 
+  fmt.Println("Error getting Params provider")
+
+
 	// try to get it from context's per-request storage
 	if p := ctx.Values().GetString("provider"); p != "" {
 		return p, nil
-	}
+  }
+
+  fmt.Println("Error getting Values Getstring provider")
+
 	// if not found then return an empty string with the corresponding error
 	return "", errors.New("you must select a provider")
 }
@@ -136,6 +163,8 @@ var GetProviderName = func(ctx iris.Context) (string, error) {
   See https://github.com/markbates/goth/examples/main.go to see this in action.
 */
 func BeginAuthHandler(ctx iris.Context) {
+  fmt.Println("# Function BeginAuthHandler")
+
   url, err := GetAuthURL(ctx)
 
 	if err != nil {
@@ -158,11 +187,12 @@ func BeginAuthHandler(ctx iris.Context) {
   yourself, but that's entirely up to you.
 */
 func GetAuthURL(ctx iris.Context) (string, error) {
+  fmt.Println("# Function GetAuthURL")
 	providerName, err := GetProviderName(ctx)
 	if err != nil {
 		return "", err
 	}
-
+  fmt.Println()
 	provider, err := goth.GetProvider(providerName)
 	if err != nil {
 		return "", err
@@ -175,9 +205,14 @@ func GetAuthURL(ctx iris.Context) (string, error) {
 	url, err := sess.GetAuthURL()
 	if err != nil {
 		return "", err
-	}
+  }
+
 	session := sessionsManager.Start(ctx)
-	session.Set(providerName, sess.Marshal())
+  session.Set(providerName, sess.Marshal())
+
+  fmt.Println("Session ")
+  fmt.Println(session)
+
 	return url, nil
 }
 
@@ -313,7 +348,7 @@ func main() {
   }
 
   goth.UseProviders(
-    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "https://bitso-slack.edgardorl.com/auth/slack/callback", "chat:write:bot, commands"),
+    slack.New(os.Getenv("SLACK_KEY"), os.Getenv("SLACK_SECRET"), "http://localhost:3333/auth/slack/callback", "commands", "users:read"),
   )
 
   m := make(map[string]string)
@@ -346,14 +381,70 @@ func main() {
 
   // Handling GET /auth/slack/callback
 	app.Get("/auth/{provider}/callback", func(ctx iris.Context) {
-    user, err := CompleteUserAuth(ctx)
+    fmt.Println("AUTH CALLBACK");
 
+    user, err := CompleteUserAuth(ctx)
 		if err != nil {
-      ctx.Redirect("/success");
+			ctx.StatusCode(iris.StatusInternalServerError)
+			ctx.Writef("%v", err)
 			return
     }
-    ctx.ViewData("User", user)
-    ctx.Redirect("/success");
+    var c = getAllCoins(ctx)
+
+    fmt.Println("COINS")
+    fmt.Println(c)
+    fmt.Println("USER")
+    fmt.Println(user.AccessToken)
+
+    // ctx.ViewData("", user)
+    ctx.ViewData("Coins", c)
+
+		if err := ctx.View("success.pug"); err != nil {
+			ctx.Writef("%v", err)
+    }
+
+
+    // body, err := ioutil.ReadAll(user)
+    // text := string(body)
+
+    // fmt.Println(text)
+
+
+    fmt.Println("USER");
+    fmt.Println(user);
+
+    // response, err := http.Get("https://api.bitso.com/v3/ticker/?book=" + coin +"_mxn")
+
+    //   if err != nil {
+    //     ctx.JSON(iris.Map{
+    //       "text": "The Bitso API is having some issues, try again in a few moments.",
+    //       "response_type": "ephemeral",
+    //     });
+    //     os.Exit(1)
+    //   }
+
+    //   body, err := ioutil.ReadAll(response.Body)
+    //   // text := string(body)
+
+    //   if err != nil {
+    //     log.Fatal(err)
+    //   }
+
+    //   cryptocurrencyData := Response{}
+    //   json.Unmarshal(body, &cryptocurrencyData)
+
+    //   if err != nil {
+    //     log.Fatal(err)
+    //   }
+
+		// if err != nil {
+    //   ctx.Redirect("/success");
+		// 	return
+    // }
+
+
+    // ctx.ViewData("", user)
+    // ctx.Redirect("/success");
   })
 
   app.Get("/logout/{provider}", func(ctx iris.Context) {
@@ -365,31 +456,50 @@ func main() {
   app.Get("/auth/{provider}", func(ctx iris.Context) {
     // try to get the user without re-authenticating
 
+    // try to get the user without re-authenticating
 		if gothUser, err := CompleteUserAuth(ctx); err == nil {
-
-      if gothUser.NickName == "" {
-        ctx.Redirect("/logout/slack");
-      }
-
-      ctx.Redirect("/success");
-
-      var c = getAllCoins(ctx);
-
-      ctx.ViewData("", gothUser)
+      fmt.Println("IF GOTHUSER")
+      var c = getAllCoins(ctx)
       ctx.ViewData("Coins", c)
+      ctx.ViewData("", gothUser)
 
-      if err := ctx.View("index.pug"); err != nil {
+			if err := ctx.View("success.pug"); err != nil {
 				ctx.Writef("%v", err)
 			}
 		} else {
+      fmt.Println("BeginAuthHandler")
 			BeginAuthHandler(ctx)
-		}
+    }
+
+		// if gothUser, err := CompleteUserAuth(ctx); err == nil {
+
+    //   fmt.Println("IF GOTHUSER")
+    //   fmt.Println(gothUser)
+
+    //   // if gothUser.NickName == "" {
+    //   //   ctx.Redirect("/logout/slack");
+    //   // }
+
+    //   ctx.Redirect("/success");
+
+    //   var c = getAllCoins(ctx);
+
+    //   ctx.ViewData("", gothUser)
+    //   ctx.ViewData("Coins", c)
+
+    //   if err := ctx.View("index.pug"); err != nil {
+		// 		ctx.Writef("%v", err)
+		// 	}
+		// } else {
+    //   fmt.Println("BeginAuthHandler")
+		// 	BeginAuthHandler(ctx)
+		// }
 	})
 
   // Handling GET /
 	app.Get("/", func(ctx iris.Context) {
 
-    var c = getAllCoins(ctx);
+    var c = getAllCoins(ctx)
     ctx.ViewData("Coins", c)
 
 		if err := ctx.View("index.pug"); err != nil {
@@ -409,16 +519,95 @@ func main() {
   })
 
   // Handling POST /prices
+  app.Post("/localprices", func(ctx iris.Context) {
+		slack := Slack{}
+    err := ctx.ReadForm(&slack)
+
+    if err != nil {
+			ctx.StatusCode(iris.StatusInternalServerError)
+			ctx.WriteString(err.Error())
+    }
+
+    // coin := strings.ToLower(slack.Text)
+
+    log.Print(slack)
+
+    db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/bitso-slack")
+
+    if err != nil {
+      fmt.Println(err.Error())
+      response := SlackWorkspace{Id: "", Error: "true", Name: "", Token: ""}
+      ctx.JSON(iris.Map{
+        "status": 400,
+        "message": response,
+      })
+    } else {
+      fmt.Println("- DB success")
+    }
+
+    var (
+      id int
+      name string
+      token string
+    )
+
+    rows, err:= db.Query("SELECT id, name, token FROM workspaces")
+    if err != nil{
+      log.Fatal(err)
+    }
+
+    defer rows.Close()
+
+    for rows.Next() {
+      err:=rows.Scan(&id,&name,&token)
+      if err != nil {
+        log.Fatal(err)
+      }
+      ctx.StatusCode(iris.StatusOK)
+      ctx.JSON(iris.Map{"message": "You need a valid token!"})
+      return
+      // ctx.JSON({"status": 400, "message": token}, "400")
+
+      // ctx.JSON()
+      // ctx.StatusCode()
+
+    }
+
+    err = rows.Err()
+    if err != nil {
+      log.Fatal(err)
+    }
+
+    defer db.Close()
+
+    // var slackworkspace string;
+    // var id string;
+    // err = db.QueryRow("SELECT id, name, token FROM workspaces").Scan(&id, &name, &token)
+
+    // if err != nil {
+    //   fmt.Println(err)
+    // }
+
+    // fmt.Println(slackworkspace);
+    // response := SlackWorkspace{Id: id, Error: "false", Name: name, Token: token}
+    // ctx.JSON(iris.Map{
+    //   "status": 200,
+    //   "message": response,
+    // })
+
+  })
+
+  // Handling POST /prices
   app.Post("/prices", func(ctx iris.Context) {
-		student := Student{}
-    err := ctx.ReadForm(&student)
+		slack := Slack{}
+    err := ctx.ReadForm(&slack)
 
 		if err != nil {
 			ctx.StatusCode(iris.StatusInternalServerError)
 			ctx.WriteString(err.Error())
 		}
 
-    coin := strings.ToLower(student.Text)
+    coin := strings.ToLower(slack.Text)
 
     // If a coin is specified, return data for that coin
     if (len(coin) > 0) && (coin == "btc" || coin == "eth" || coin == "xrp" || coin == "ltc") {
